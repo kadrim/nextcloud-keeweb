@@ -101,7 +101,8 @@ on a fresh installation; existing volumes are not automatically upgraded.
 
 Install the **Dev Containers** extension and select **Dev Containers: Reopen in
 Container**. It uses the same Compose service and volumes, keeps the server
-entrypoint running, and builds both frontends on container creation.
+entrypoint running, builds both frontends, and installs Playwright's Chromium
+browser and Linux dependencies on container creation.
 Open <http://localhost:8080> once initialization and the build finish.
 Inside the devcontainer, run commands directly rather than using `bin/dev`:
 
@@ -110,6 +111,11 @@ bash bin/dev-build
 occ status
 cd keeweb && npm run build
 ```
+
+The Playwright extension is included for running the browser tests from VS Code's
+Testing view. The devcontainer sets `PLAYWRIGHT_BASE_URL=http://localhost` because
+Nextcloud listens on port 80 inside the container, regardless of the published
+host port. Rebuild the devcontainer after pulling these setup changes.
 
 The container includes PHP, Composer, PHPUnit, Git, Node, npm, and build tools.
 VS Code uses a non-root development user. Xdebug is available but off by default;
@@ -135,6 +141,57 @@ The v4 library requires Node 24; use the same Node version for local and release
 builds. Rebuild the devcontainer after changing its Node image.
 Run `cd keeweb && npm test` to build and test the actual viewer bundle's v4
 registration, file eligibility, and database-opening URL.
+
+### Playwright browser tests
+
+The [end-to-end tests](keeweb/tests/e2e/open-database.spec.js) sign in as
+`admin` / `admin`, open `dummy.kdbx` using both Files actions, and unlock it with
+the password `admin`. Run them only against the disposable development instance.
+Nextcloud must be ready, both frontends must be built, and the original sample
+database must be present (restore it as described above if you changed it).
+The tests do not start or build the server.
+
+Inside the devcontainer:
+
+```sh
+npm --prefix keeweb run test:e2e
+# Run only one scenario:
+npm --prefix keeweb run test:e2e -- --grep "context menu"
+# View the HTML report after a run:
+npm --prefix keeweb run test:e2e:report -- --host 0.0.0.0
+```
+
+Forward port 9323 in VS Code's Ports view to open the report from your host.
+Reports, failure screenshots, and failure traces are saved under the ignored
+`keeweb/playwright-report` and `keeweb/test-results` directories. Traces can be
+opened from the HTML report. Keep these artifacts private: they can include
+session details and page contents.
+
+To run from the host instead, use Node 24/npm 11 and start and build the Compose
+instance with `bin/dev up` and `bin/dev build`, then:
+
+```sh
+cd keeweb
+npm ci
+npm run test:e2e:install
+npm run test:e2e
+```
+
+On Linux, the browser-dependency installation may ask for sudo. On other
+Playwright-supported platforms, it installs Chromium without Linux packages.
+If using a different published port, override the default URL for the test run:
+
+```sh
+PLAYWRIGHT_BASE_URL=http://localhost:8081 npm run test:e2e
+```
+
+If running in an existing container without rebuilding it, run
+`npm --prefix keeweb ci` and `npm --prefix keeweb run test:e2e:install` once,
+then set `PLAYWRIGHT_BASE_URL=http://localhost` when running the tests.
+Rerun the browser installation after updating Playwright. Browser tests are
+separate from `npm test`, which does not require a running Nextcloud instance.
+
+### Build workflow and PHP tests
 
 [bin/dev-build](bin/dev-build) runs both. Treat the ignored `keeweb-source`
 directory as disposable: the existing upstream build script resets tracked

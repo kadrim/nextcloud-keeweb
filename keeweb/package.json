@@ -4,7 +4,10 @@
   "private": true,
   "scripts": {
     "build": "NODE_ENV=production webpack --progress --config webpack.js",
-    "test": "npm run build && node --test tests/unit/viewer.test.js"
+    "test": "npm run build && node --test tests/unit/viewer.test.js",
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install --with-deps chromium",
+    "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
     "@nextcloud/files": "^4.1.0",
@@ -19,6 +22,7 @@
     "npm": "^11.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "1.64.1",
     "babel-loader-exclude-node-modules-except": "^1.2.1"
   }
 }

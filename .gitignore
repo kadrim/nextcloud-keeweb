@@ -10,5 +10,7 @@ keeweb/js/viewer.js
 keeweb/js/viewer.js.map
 keeweb/js/viewer.js.LICENSE.txt
 keeweb/node_modules/
+keeweb/playwright-report/
+keeweb/test-results/
 .idea/
 .DS_Store

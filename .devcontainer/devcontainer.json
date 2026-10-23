@@ -6,12 +6,16 @@
   "remoteUser": "vscode",
   "overrideCommand": false,
   "shutdownAction": "stopCompose",
-  "postCreateCommand": "bash bin/dev-build",
+  "postCreateCommand": "bash bin/dev-build && npm --prefix keeweb run test:e2e:install",
+  "remoteEnv": {
+    "PLAYWRIGHT_BASE_URL": "http://localhost"
+  },
   "customizations": {
     "vscode": {
       "extensions": [
         "bmewburn.vscode-intelephense-client",
-        "xdebug.php-debug"
+        "xdebug.php-debug",
+        "ms-playwright.playwright"
       ],
       "settings": {
         "php.suggest.basic": false,
