@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: keeweb/package-lock.json
+
+      - name: Build both frontends
+        run: bash bin/dev-build
+
+      - name: Run build-script tests
+        run: node --test bin/tests/*.test.js
+
+      - name: Run viewer unit tests
+        run: npm --prefix keeweb test
+
+      - name: Install Playwright Chromium
+        run: npm --prefix keeweb run test:e2e:install
+
+      - name: Start Nextcloud and wait for initialization
+        run: docker compose up --build --wait --wait-timeout 1200
+
+      - name: Run Playwright tests
+        run: npm --prefix keeweb run test:e2e
+
+      - name: Show Nextcloud logs on failure
+        if: failure()
+        run: docker compose logs --no-color nextcloud
+
+      - name: Upload Playwright results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: |
+            keeweb/playwright-report/
+            keeweb/test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Stop Nextcloud
+        if: always()
+        run: docker compose down --volumes

@@ -232,6 +232,19 @@ make dist
 
 The package is written to `keeweb/build/artifacts/appstore/keeweb.tar.gz`.
 
+### GitHub CI workflow
+
+The [CI workflow](.github/workflows/ci.yml) runs on pull requests targeting
+`master` and pushes to `master`. It builds both frontends with `bin/dev-build`,
+runs the build-script and viewer unit tests, then starts a fresh disposable
+Nextcloud instance with Docker Compose and runs the Chromium Playwright tests.
+The legacy PHP tests described above are not included.
+
+Playwright reports, screenshots, and failure traces are uploaded as the
+`playwright-results` artifact and retained for seven days. These use only the
+disposable instance and sample database, not production credentials or data.
+Nextcloud logs are printed on failure, and the instance is stopped afterwards.
+
 ### GitHub release workflow
 
 The manually triggered [Release workflow](.github/workflows/release.yml) builds
