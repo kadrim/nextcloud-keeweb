@@ -43,32 +43,111 @@ To update to a new version, simply repeat these steps.
 
 ## Development setup
 
+The container setup uses the official
+[Nextcloud development image](https://github.com/nextcloud/nextcloud-docker-dev)
+with Nextcloud `stable34`, PHP 8.4, SQLite, Node 20 and npm 9.
+It is for local development only: debug mode is enabled and the upstream image
+creates the `admin` user with password `admin`, plus additional test users.
+Use synthetic KDBX 3 databases only, never real password vaults.
+
+### Docker Compose
+
+Install Docker Engine (or Docker Desktop) with the Compose plugin, then run:
+
+```sh
+bin/dev up
+bin/dev build
 ```
-git clone https://github.com/jhass/nextcloud-keeweb.git
-cd nextcloud-keeweb
 
-# You can skip this if you only want to build the appstore or source packages
-git clone -b stable20 https://github.com/nextcloud/server.git nextcloud
-ln -sf "$(pwd)/keeweb" nextcloud/apps
-cd nextcloud && git submodule update --init && cd -
+Open <http://localhost:8080> and sign in with `admin` / `admin`.
+The first startup downloads Nextcloud's source and dependencies; the first build
+also clones and builds upstream KeeWeb. Both can take several minutes and require
+internet access. `up` waits for Nextcloud to be installed and Keeweb enabled;
+`build` must finish before opening the Keeweb app.
 
-git clone https://github.com/keeweb/keeweb.git keeweb-source
+The repository is mounted at `/workspace` and [keeweb](keeweb) is also mounted
+directly into Nextcloud's `apps-extra/keeweb`. PHP edits take effect immediately;
+JavaScript changes require a rebuild. Build outputs stay in the working tree.
+Commands run through `bin/dev build` and `bin/dev shell` use your host UID/GID
+so generated files are not owned by root on Linux.
 
-# Install npm -- this might require a more recent npm than your distro's, see https://github.com/nodesource/distributions on how to deploy it
-# Once npm is installed, install grunt and bower; instead of relying on your distro's, you can do
-sudo npm install -g grunt
+```sh
+bin/dev occ status
+bin/dev occ app:list
+bin/dev shell
+bin/dev logs
+bin/dev down
+```
 
-# Build nextcloud-keeweb - this will build with the current tested release
-# If you want to update to a newer version of Keeweb or use the development version, you also need to modify the patches for it
-bin/build
+`down` removes the containers but preserves the named volumes holding Nextcloud's
+source, configuration, database, uploaded files, and installed apps. Running
+`bin/dev up` again reuses them and reapplies the app initialization.
+To delete **all development instance data**, run `docker compose down --volumes`.
+This does not delete your repository or the ignored build outputs.
 
-# Finally, run the nextcloud server
-bin/server
-# Alternatively, you can build the app package to test on a running nextcloud by doing
-cd keeweb
+Set `NEXTCLOUD_PORT=8081` in a root `.env` file if port 8080 is occupied.
+The published port binds only to `127.0.0.1`. Do not expose this development
+instance to the internet. The `stable34` branch follows its maintenance updates
+on a fresh installation; existing volumes are not automatically upgraded.
+
+### VS Code devcontainer
+
+Install the **Dev Containers** extension and select **Dev Containers: Reopen in
+Container**. It uses the same Compose service and volumes, keeps the server
+entrypoint running, and builds both frontends on container creation.
+Open <http://localhost:8080> once initialization and the build finish.
+Inside the devcontainer, run commands directly rather than using `bin/dev`:
+
+```sh
+bash bin/dev-build
+occ status
+cd keeweb && npm run build
+```
+
+The container includes PHP, Composer, PHPUnit, Git, Node, npm, and build tools.
+VS Code uses a non-root development user. Xdebug is available but off by default;
+set `PHP_XDEBUG_MODE=debug` in `.env` and recreate the container to enable it.
+Inside the devcontainer, start **Listen for Xdebug (devcontainer)** in VS Code's
+Run and Debug view and enable an Xdebug browser trigger (for example, append
+`?XDEBUG_TRIGGER=1` to the app URL). The debugger connects within the container;
+no debugger port is published on the host.
+
+### Build details and tests
+
+There are two frontend builds:
+
+- [bin/build](bin/build) applies the repository's patches to the version in
+  [keeweb-version](keeweb-version) and generates the embedded KeeWeb templates.
+- `cd keeweb && npm install && npm run build` builds the Nextcloud file-viewer
+  integration.
+
+[bin/dev-build](bin/dev-build) runs both. Treat the ignored `keeweb-source`
+directory as disposable: the existing upstream build script resets tracked
+files and removes untracked files there. Do not keep your own work in that clone.
+To change the upstream KeeWeb version, update the version file and review all
+three patch files.
+
+The Nextcloud source (including its test bootstrap) is available at
+`/var/www/html`. The existing PHP tests are legacy tests using obsolete PHPUnit
+APIs and an outdated controller constructor; they need updating before they can
+validate the current app. The container does not silently skip or rewrite them.
+For now, verify changes with the frontend builds and browser checks of the app
+and opening/saving a disposable KDBX 3 file.
+
+The legacy dependencies also produce npm audit findings. A successful build does
+not mean they are safe for production. The current app still reports
+`jQuery is not defined` in its outer-frame script on Nextcloud 34, even though the
+embedded KeeWeb UI loads. These existing application/dependency issues are not
+fixed by the development environment.
+
+To build an app-store package inside the container:
+
+```sh
+cd /workspace/keeweb
 make dist
-# The package that can be installed in the nextcloud app folder is here: ./build/artifacts/appstore/keeweb.tar.gz
 ```
+
+The package is written to `keeweb/build/artifacts/appstore/keeweb.tar.gz`.
 
 ## Contributing
 

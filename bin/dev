@@ -1,0 +1,33 @@
+#!/bin/bash
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+case "${1:-help}" in
+  up)
+    docker compose up --build --wait --wait-timeout 1200
+    ;;
+  build)
+    docker compose exec --user "$(id -u):$(id -g)" nextcloud bash /workspace/bin/dev-build
+    ;;
+  occ)
+    shift
+    docker compose exec nextcloud occ "$@"
+    ;;
+  shell)
+    docker compose exec --user "$(id -u):$(id -g)" --workdir /workspace nextcloud bash
+    ;;
+  logs)
+    docker compose logs --follow nextcloud
+    ;;
+  down)
+    docker compose down
+    ;;
+  help|--help|-h)
+    echo "Usage: bin/dev {up|build|occ [args...]|shell|logs|down}"
+    ;;
+  *)
+    echo "Unknown command: $1" >&2
+    exit 1
+    ;;
+esac

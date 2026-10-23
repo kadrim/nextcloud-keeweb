@@ -1,0 +1,24 @@
+{
+  "name": "Keeweb for Nextcloud",
+  "dockerComposeFile": "../compose.yaml",
+  "service": "nextcloud",
+  "workspaceFolder": "/workspace",
+  "remoteUser": "vscode",
+  "overrideCommand": false,
+  "shutdownAction": "stopCompose",
+  "postCreateCommand": "bash bin/dev-build",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "bmewburn.vscode-intelephense-client",
+        "xdebug.php-debug"
+      ],
+      "settings": {
+        "php.suggest.basic": false,
+        "intelephense.environment.includePaths": [
+          "/var/www/html/lib/public"
+        ]
+      }
+    }
+  }
+}

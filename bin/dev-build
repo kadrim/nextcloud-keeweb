@@ -1,0 +1,12 @@
+#!/bin/bash
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+if [[ ! -d keeweb-source ]]; then
+  git clone --branch "$(cat keeweb-version)" https://github.com/keeweb/keeweb.git keeweb-source
+fi
+
+bash bin/build
+npm --prefix keeweb ci
+npm --prefix keeweb run build

@@ -1,0 +1,40 @@
+services:
+  nextcloud:
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    ports:
+      - "127.0.0.1:${NEXTCLOUD_PORT:-8080}:80"
+    environment:
+      SERVER_BRANCH: stable34
+      SQL: sqlite
+      WITH_REDIS: "NO"
+      NEXTCLOUD_AUTOINSTALL: "YES"
+      NEXTCLOUD_TRUSTED_DOMAINS: localhost 127.0.0.1
+      PHP_XDEBUG_MODE: "${PHP_XDEBUG_MODE:-off}"
+      NEXTCLOUD_PORT: "${NEXTCLOUD_PORT:-8080}"
+    volumes:
+      - .:/workspace
+      - ./keeweb:/var/www/html/apps-extra/keeweb
+      - ./.devcontainer/before-start.sh:/shared/hooks/before-start.sh:ro
+      - nextcloud:/var/www/html
+      - nextcloud-config:/var/www/html/config
+      - nextcloud-data:/var/www/html/data
+      - nextcloud-apps:/var/www/html/apps-writable
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          test -f /tmp/keeweb-ready &&
+          curl --fail --silent http://localhost/status.php |
+          php -r '$$s = json_decode(stream_get_contents(STDIN), true); exit(!($$s["installed"] ?? false) || ($$s["maintenance"] ?? true) || ($$s["needsDbUpgrade"] ?? true) ? 1 : 0);'
+      interval: 5s
+      timeout: 10s
+      start_period: 30s
+      retries: 180
+
+volumes:
+  nextcloud:
+  nextcloud-config:
+  nextcloud-data:
+  nextcloud-apps:
