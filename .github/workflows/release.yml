@@ -10,7 +10,10 @@ on:
       commit_email:
         description: "The email address used for the release commit"
         required: true
-        default: "me+release-ci@jhass.eu"
+        default: "8304331+kadrim@users.noreply.github.com"
+
+permissions:
+  contents: write
 
 jobs:
   release:
@@ -26,15 +29,20 @@ jobs:
           sudo npm install -g grunt
       - name: Build and publish
         run: |
+          if [ -z "$APPSTORE_KEY" ] || [ -z "$NC_AUTH_TOKEN" ]; then
+            echo "::error::Configure the APPSTORE_KEY and NC_AUTH_TOKEN repository secrets before releasing."
+            exit 1
+          fi
           git config --local user.email "$COMMIT_EMAIL"
           git config --local user.name  "Github Actions Release Job"
-          git remote set-url origin "https://$GITHUB_ACTOR:$GITHUB_TOKEN@github.com/$GITHUB_REPOSITORY.git"
-          echo "$APPSTORE_KEY" > "$SIGNING_KEY"
+          umask 077
+          trap 'rm -f "$SIGNING_KEY"' EXIT
+          printf '%s\n' "$APPSTORE_KEY" > "$SIGNING_KEY"
           bin/release "$VERSION"
         env:
           VERSION: ${{github.event.inputs.version}}
           COMMIT_EMAIL: ${{github.event.inputs.commit_email}}
           APPSTORE_KEY: ${{secrets.APPSTORE_KEY}}
           NC_AUTH_TOKEN: ${{secrets.NC_AUTH_TOKEN}}
-          SIGNING_KEY: ${{github.workspace}}/keeweb.key
+          SIGNING_KEY: ${{runner.temp}}/keeweb.key
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}

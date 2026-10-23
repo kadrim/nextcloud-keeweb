@@ -232,6 +232,89 @@ make dist
 
 The package is written to `keeweb/build/artifacts/appstore/keeweb.tar.gz`.
 
+### GitHub release workflow
+
+The manually triggered [Release workflow](.github/workflows/release.yml) builds
+the app, pushes a release commit and tag to `master`, creates a GitHub release,
+and publishes it to the Nextcloud App Store. It is not a dry run. Update
+`keeweb/CHANGELOG.md` and `keeweb-version` before running it, and enter the
+release version without a `v` prefix. Repository rules must allow the workflow
+to push its release commit and tag.
+
+The workflow requests `contents: write` and uses GitHub's automatically
+provided `GITHUB_TOKEN`; do not create a personal access token for it.
+Configure these two repository secrets under **Settings > Secrets and
+variables > Actions > New repository secret**:
+
+| Secret | Value |
+| --- | --- |
+| `APPSTORE_KEY` | The complete PEM private key for the Nextcloud app id `keeweb`, including its BEGIN/END lines and line breaks. |
+| `NC_AUTH_TOKEN` | The Nextcloud App Store API token for the account authorized to publish `keeweb`. |
+
+Keep both values out of commits, issues, workflow logs, and chat. The workflow
+writes the signing key to a private temporary file and removes it when the
+publishing step exits.
+
+#### Obtaining App Store credentials
+
+A repository move does not transfer Nextcloud App Store ownership. Before
+creating replacement credentials, coordinate with the current `keeweb` App Store
+owner and Nextcloud maintainers about ownership transfer and certificate
+replacement. The current owner can unlock a transfer in the
+[App Store transfer settings](https://apps.nextcloud.com/account/transfer-apps).
+Do not register an unrelated app id or assume a new API token grants access to
+the existing app.
+
+For a new signing key, run the following on your own trusted machine, outside
+the repository:
+
+```sh
+(
+  umask 077
+  mkdir -p ~/.nextcloud/certificates
+  cd ~/.nextcloud/certificates
+  if [ -e keeweb.key ] || [ -e keeweb.csr ]; then
+    printf '%s\n' 'Existing keeweb key or CSR found; do not overwrite it.' >&2
+    exit 1
+  fi
+  openssl req -nodes -newkey rsa:4096 \
+    -keyout keeweb.key -out keeweb.csr -subj "/CN=keeweb"
+)
+```
+
+Back up the private key securely. Submit only the public CSR to
+[Nextcloud's certificate request repository](https://github.com/nextcloud/app-certificate-requests),
+following its instructions for the existing `keeweb` app and linking to
+<https://github.com/kadrim/nextcloud-keeweb>. Explain the maintainer change and coordinate
+replacement of the existing certificate; never submit the private key.
+
+After approval, save the signed public certificate locally and follow
+[Nextcloud's registration and transfer instructions](https://nextcloudappstore.readthedocs.io/en/latest/developer.html)
+to authorize your account and register the appropriate certificate. Registration
+requires the public certificate and a signature over the app id:
+
+```sh
+printf '%s' keeweb | openssl dgst -sha512 \
+  -sign ~/.nextcloud/certificates/keeweb.key | openssl base64
+```
+
+**Stop before replacing an existing registered certificate:** Nextcloud's
+documentation says doing so deletes previous App Store releases because their
+signatures become invalid. Agree on the migration with the existing owner and
+Nextcloud maintainers first.
+
+Sign in to the authorized account on <https://apps.nextcloud.com> and obtain its
+API token from [account settings](https://apps.nextcloud.com/account/token).
+Store that token as `NC_AUTH_TOKEN`, and the full private key as `APPSTORE_KEY`.
+The public certificate and CSR are not secrets, and this workflow does not
+require a certificate secret: it signs the release archive with the private key,
+and the App Store verifies it against the registered certificate.
+
+Once ownership, certificate registration, and both secrets are ready, open
+**Actions > Release > Run workflow**, select `master`, and enter an unused
+release version. The default release commit email is
+`8304331+kadrim@users.noreply.github.com`.
+
 ## Contributing
 
 1. Fork the repository and clone your fork.

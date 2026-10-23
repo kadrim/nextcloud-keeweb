@@ -21,9 +21,9 @@ You should consider to choose an actively maintained developed app like Passman 
     <namespace>Keeweb</namespace>
     <category>tools</category>
     <category>integration</category>
-    <website>https://github.com/jhass/nextcloud-keeweb</website>
-    <bugs>https://github.com/jhass/nextcloud-keeweb/issues</bugs>
-    <repository>https://github.com/jhass/nextcloud-keeweb</repository>
+    <website>https://github.com/kadrim/nextcloud-keeweb</website>
+    <bugs>https://github.com/kadrim/nextcloud-keeweb/issues</bugs>
+    <repository>https://github.com/kadrim/nextcloud-keeweb</repository>
     <screenshot>https://arnowelzel.de/download/nextcloud-keeweb.gif</screenshot>
     <dependencies>
         <php min-version="8.1"/>
