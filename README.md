@@ -65,6 +65,13 @@ also clones and builds upstream KeeWeb. Both can take several minutes and requir
 internet access. `up` waits for Nextcloud to be installed and Keeweb enabled;
 `build` must finish before opening the Keeweb app.
 
+Startup also copies [dummy.kdbx](dummy.kdbx) into the `admin` user's Files root
+if no file with that name exists. Open it in Nextcloud and use the database
+master password `admin`. It contains one sample entry, `Nextcloud`, with username
+`admin` and password `password`. This is disposable test data, not a real vault.
+Existing copies are never overwritten on restart, so your test edits are kept.
+To restore the sample, delete it from Nextcloud's Files and restart the container.
+
 The repository is mounted at `/workspace` and [keeweb](keeweb) is also mounted
 directly into Nextcloud's `apps-extra/keeweb`. PHP edits take effect immediately;
 JavaScript changes require a rebuild. Build outputs stay in the working tree.
