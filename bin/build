@@ -7,8 +7,8 @@ realpath() {
 
 cd "$(dirname "$(realpath "$0")")/.."
 
-if [[ ! -d keeweb-source || ! -d keeweb-source/.git ]]; then
-  echo "keeweb-source is missing or not a git repository"
+if ! git -C keeweb-source rev-parse --resolve-git-dir .git >/dev/null 2>&1; then
+  echo "keeweb-source is missing or not a git repository; run bash bin/dev-build to prepare it" >&2
   exit 1
 fi
 
@@ -33,7 +33,6 @@ git apply < ../default_settings.patch
 git apply < ../updater.patch
 
 npm install
-npm ci
 
 NODE_OPTIONS=--openssl-legacy-provider npx grunt build-web-app --skip-sign --force
 cp -v dist/index.html ../keeweb/templates/keeweb.php

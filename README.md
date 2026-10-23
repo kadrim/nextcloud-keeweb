@@ -45,7 +45,7 @@ To update to a new version, simply repeat these steps.
 
 The container setup uses the official
 [Nextcloud development image](https://github.com/nextcloud/nextcloud-docker-dev)
-with Nextcloud `stable34`, PHP 8.4, SQLite, Node 20 and npm 9.
+with Nextcloud `stable34`, PHP 8.4, SQLite, Node 24 and npm 11.
 It is for local development only: debug mode is enabled and the upstream image
 creates the `admin` user with password `admin`, plus additional test users.
 Use synthetic KDBX 3 databases only, never real password vaults.
@@ -128,9 +128,28 @@ There are two frontend builds:
 - `cd keeweb && npm install && npm run build` builds the Nextcloud file-viewer
   integration.
 
+The file-viewer integration uses `@nextcloud/files` v4 for Nextcloud 34.
+Version 3 registers actions in the old registry, which Nextcloud 34 no longer
+uses: Keeweb itself loads, but "Open With Keeweb" is missing from Files.
+The v4 library requires Node 24; use the same Node version for local and release
+builds. Rebuild the devcontainer after changing its Node image.
+Run `cd keeweb && npm test` to build and test the actual viewer bundle's v4
+registration, file eligibility, and database-opening URL.
+
 [bin/dev-build](bin/dev-build) runs both. Treat the ignored `keeweb-source`
 directory as disposable: the existing upstream build script resets tracked
 files and removes untracked files there. Do not keep your own work in that clone.
+If the directory exists without valid Git metadata, `bin/dev-build` preserves it
+under an ignored `keeweb-source.backup.*` directory (printing the exact path)
+and clones a fresh checkout. A clone failure stops the build; the backup remains
+available and you can retry `bash bin/dev-build`.
+The legacy upstream build uses `npm install` only: following it with `npm ci`
+can fail on Linux because the updated lockfile omits the optional macOS-only
+`grunt-appdmg` dependency. The file-viewer integration still uses `npm ci` with
+its maintained lockfile.
+Run `node --test bin/tests/*.test.js` to test checkout setup, recovery, and the
+upstream install/build sequence without downloading dependencies or building
+the frontends.
 To change the upstream KeeWeb version, update the version file and review all
 three patch files.
 

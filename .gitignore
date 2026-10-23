@@ -2,6 +2,7 @@
 nextcloud/
 ncdev/
 keeweb-source/
+keeweb-source.backup.*/
 keeweb/build/
 keeweb/templates/keeweb.php
 keeweb/templates/service-worker.js
